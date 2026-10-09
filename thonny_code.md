@@ -3,7 +3,6 @@ from machine import ADC, Pin
 from time import sleep
 from umqtt.simple import MQTTClient
 import utime, time, network, dht, ujson
-# import paho.mqtt.client as mqtt
 
 # SETUP
 # WEBSITE: https://www.hivemq.com/demos/websocket-client/
@@ -13,8 +12,6 @@ import utime, time, network, dht, ujson
 # HOST: mqtt-dashboard.com
 # TOPIC: TAFE//i-hess/morse-code
 # TOPIC2: TAFE//i-hess/morse-code-respond
-
-# Convert morse code in paho/python/subscriber-side code when displaying the message
 
 def mqtt_on_message(topic, msg):
     # There is only 1 callback, but you can filter based on what the topic was.
@@ -65,7 +62,6 @@ wifi_ssid = ""
 wifi_password = ""
 
 
-# Connect to wifi
 print("\nConnecting to WiFi...", end="")
 pico_led.on() # use pico_led to know when it's running
 ledRed.pulse()

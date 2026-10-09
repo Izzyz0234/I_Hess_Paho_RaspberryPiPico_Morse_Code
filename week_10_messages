@@ -1,18 +1,18 @@
 import paho.mqtt.client as mqtt
 import re
-decifered = None
+
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("TAFE//i-hess/morse-code")
-    client.subscribe("TAFE//i-hess/morse-code-respond")
+    client.subscribe("TAFE/i-hess/morse-code")
+    client.subscribe("TAFE/i-hess/morse-code-respond")
     # The callback for when a PUBLISH message is received from the server.
 
 def on_message(client, userdata, msg):
     MESSAGE = (str(msg.payload))
-    
+    printed = False
 
     # Remove unesasary 
     MESSAGE = re.sub(r',|"|b', '', MESSAGE)
@@ -36,30 +36,27 @@ def on_message(client, userdata, msg):
     for i in range(len(LETTERS)):
         if LETTERS[i] in DECIFER:
             NEWMESSAGE += DECIFER[LETTERS[i]]
-            decifered == True
+            decifered = True
         else:
-            decifered == False
-            
+            decifered = False
         
     # Print progress converting values
     print(msg.topic+": "+str(msg.payload))
     print('Message: ', MESSAGE, "\nLetters:", LETTERS, "\nNew Message:", NEWMESSAGE)
     print(decifered)
+
+    if decifered == True and printed == False:
+        printed = True
+        mqttc.publish('TAFE/i-hess/morse-code-respond','ledGreen2.on()')
+        mqttc.publish('TAFE/i-hess/morse-code-respond','ledRed2.off()')
+    else:
+        pass
     
     # if the messages has an order that matches a string in DECIFER print off that letter. such as MESSAGE incudes = ".", "_" print("A")
 
 
 mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-if decifered == False:
-    mqttc.publish('TAFE//i-hess/morse-code-respond','ledRed2.off()')
-    mqttc.publish('TAFE//i-hess/morse-code-respond','ledGreen2.on()')
-else:
-    mqttc.publish('TAFE//i-hess/morse-code-respond','ledGreen2.off()')
-    mqttc.publish('TAFE//i-hess/morse-code-respond','ledRed2.ofn()')
-
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 mqttc.connect("mqtt-dashboard.com")
 mqttc.loop_forever()
-
-

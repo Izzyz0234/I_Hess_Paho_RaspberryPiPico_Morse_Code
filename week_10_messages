@@ -25,17 +25,18 @@ def on_message(client, userdata, msg):
     # convert to MESSAGE list into LETTERS list with each item being its own letter
     LETTERS = re.split(r'={1,2}', MESSAGE)
 
+    # Conversions for morse code to letters and numbers
     DECIFER = {'._': 'A', '_...': 'B', '_._.': 'C', '_..': 'D', '.': 'E', '.._.': 'F', '__.': 'G',
-                '....': 'H', '..': 'I', '.___': 'J', '_,_': 'K', '._..': 'L', '__': 'M', '_.': 'N', '___': 'O', '.__.': 'P', 
-                '__._': 'Q', '._.': 'R', '...': 'S', '_': 'T', '.._': 'U', '..._': 'V', 
-                '.__': 'W', '_.._': 'X', '_.__': 'Y', '__..': 'Z', '': ' ', 
+                '....': 'H', '..': 'I', '.___': 'J', '_,_': 'K', '._..': 'L', '__': 'M', '_.': 'N', 
+                '___': 'O', '.__.': 'P', '__._': 'Q', '._.': 'R', '...': 'S', '_': 'T', '.._': 'U',
+                '..._': 'V', '.__': 'W', '_.._': 'X', '_.__': 'Y', '__..': 'Z', '': ' ', 
                 '.____': '1', '..___': '2', '...__': '3', '...._': '4', '.....': '5', 
                 '_....': '6', '__...': '7', '___..': '8', '____.': '9', '_____': '0'}
 
     NEWMESSAGE = ""
     all_symbols_converted = True
 
-    # foreach item in DECIFER and LETTERS if they match replace LETTERS morse code to DECIFER letter
+    # foreach item in DECIFER and LETTERS if they match replace LETTERS morse code to DECIFER letter. If doesnt convert replace with *
     for i in range(len(LETTERS)):
         if LETTERS[i] in DECIFER:
             NEWMESSAGE += DECIFER[LETTERS[i]]

@@ -2,6 +2,8 @@
 IOT - Week 10 - Communication and Data management tools  
 
 Made by: Izzyz0234/Izzy
+
+
 Made by: ihess0234-Igtm/Maple03
 
 Date Completed: 9/10/2026

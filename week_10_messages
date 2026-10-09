@@ -7,12 +7,12 @@ def on_connect(client, userdata, flags, reason_code, properties):
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
     client.subscribe("TAFE/i-hess/morse-code")
-    client.subscribe("TAFE/i-hess/morse-code-respond")
-    # The callback for when a PUBLISH message is received from the server.
 
 def on_message(client, userdata, msg):
+    if msg.topic == "TAFE/i-hess/morse-code-respond":
+        return
+
     MESSAGE = (str(msg.payload))
-    printed = False
 
     # Remove unesasary 
     MESSAGE = re.sub(r',|"|b', '', MESSAGE)
@@ -24,34 +24,37 @@ def on_message(client, userdata, msg):
 
     # convert to MESSAGE list into LETTERS list with each item being its own letter
     LETTERS = re.split(r'={1,2}', MESSAGE)
-    
+
     DECIFER = {'._': 'A', '_...': 'B', '_._.': 'C', '_..': 'D', '.': 'E', '.._.': 'F', '__.': 'G',
                 '....': 'H', '..': 'I', '.___': 'J', '_,_': 'K', '._..': 'L', '__': 'M', '_.': 'N', '___': 'O', '.__.': 'P', 
                 '__._': 'Q', '._.': 'R', '...': 'S', '_': 'T', '.._': 'U', '..._': 'V', 
-                '.__': 'W', '_.._': 'X', '_.__': 'Y', '__..': 'Z', '': ' '}
+                '.__': 'W', '_.._': 'X', '_.__': 'Y', '__..': 'Z', '': ' ', 
+                '.____': '1', '..___': '2', '...__': '3', '...._': '4', '.....': '5', 
+                '_....': '6', '__...': '7', '___..': '8', '____.': '9', '_____': '0'}
 
     NEWMESSAGE = ""
+    all_symbols_converted = True
 
     # foreach item in DECIFER and LETTERS if they match replace LETTERS morse code to DECIFER letter
     for i in range(len(LETTERS)):
         if LETTERS[i] in DECIFER:
             NEWMESSAGE += DECIFER[LETTERS[i]]
-            decifered = True
         else:
-            decifered = False
-        
+            NEWMESSAGE += "*"
+            all_symbols_converted = False
+
     # Print progress converting values
     print(msg.topic+": "+str(msg.payload))
     print('Message: ', MESSAGE, "\nLetters:", LETTERS, "\nNew Message:", NEWMESSAGE)
-    print(decifered)
+    print('Properly Converted:', all_symbols_converted)
 
-    if decifered == True and printed == False:
-        printed = True
+    if all_symbols_converted:
         mqttc.publish('TAFE/i-hess/morse-code-respond','ledGreen2.on()')
         mqttc.publish('TAFE/i-hess/morse-code-respond','ledRed2.off()')
     else:
-        pass
-    
+        mqttc.publish('TAFE/i-hess/morse-code-respond','ledRed2.on()')
+        mqttc.publish('TAFE/i-hess/morse-code-respond','ledGreen2.off()')
+
     # if the messages has an order that matches a string in DECIFER print off that letter. such as MESSAGE incudes = ".", "_" print("A")
 
 

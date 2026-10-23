@@ -6,21 +6,22 @@ MQTT_BROKER = "mqtt-dashboard.com"
 MQTT_ADA_BROKER = "io.adafruit.com"
 
 TOPIC_PICO = 'TAFE/i-hess/button'
-TOPIC_ADA_BUTTON = 'Izzy0234/feeds/button'
+TOPIC_ADA_BUTTON = 'Izzy0234/feeds/morse-code.button'
 
-
+#Connected to HiveMQTT broker
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected to {MQTT_BROKER} with result code {reason_code}")
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("TAFE/i-hess/button")
+    client.subscribe(TOPIC_PICO)
 
 def on_message(client, userdata, msg):
     if msg.topic == TOPIC_PICO:
         print(msg.topic+": "+str(msg.payload))
         return
 
+#Connected to io.adafruit.com broker
 def on_connect_ada(client, userdata, flags, reason_code, properties):
     print(f"Connected to {MQTT_ADA_BROKER} with result code {reason_code}")
     # Subscribing in on_connect() means that if we lose the connection and
@@ -28,6 +29,7 @@ def on_connect_ada(client, userdata, flags, reason_code, properties):
     client.subscribe(TOPIC_ADA_BUTTON)
 
 def on_message_ada(client, userdata, msg):
+    mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
     if msg.topic == TOPIC_ADA_BUTTON:
         print(msg.topic+": "+str(msg.payload))
         return
@@ -44,8 +46,7 @@ mqttc_ada = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqttc_ada.on_connect = on_connect_ada
 mqttc_ada.on_message = on_message_ada
 mqttc_ada.connect(MQTT_BROKER)
-
-
+mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
 
 
 
@@ -54,7 +55,8 @@ mqttc_ada.loop_start()
 
 while True:
     time.sleep(1)  # Keep the main thread alive to allow MQTT loop to run
-    mqttc_ada.publish("Izzy0234/groups/led-status", '{"feeds":{"led-status.led1":"ON","led-status.led2":"OFF"}}')  # Publish a message to the Adafruit button topic
+    mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
+    # mqttc_ada.publish("Izzy0234/groups/led-status", '{"feeds":{"led-status.led1":"ON","led-status.led2":"OFF"}}')  # Publish a message to the Adafruit button topic
 
 mqttc.loop_stop()  # Stop the MQTT loop when done
 mqttc_ada.loop_stop()  # Stop the MQTT loop when done

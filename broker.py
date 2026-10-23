@@ -1,38 +1,81 @@
-import paho.mqtt.client as mqtt
-from PIL import Image
+import re
 import time
+import paho.mqtt.client as mqtt
+
+ADAFRUIT_AIO_USERNAME = "Izzy0234"
+ADAFRUIT_AIO_KEY = ""
 
 MQTT_BROKER = "mqtt-dashboard.com"
 MQTT_ADA_BROKER = "io.adafruit.com"
 
-TOPIC_PICO = 'TAFE/i-hess/button'
-TOPIC_ADA_BUTTON = 'Izzy0234/feeds/morse-code.button'
+TOPIC_HIVEMQ = "TAFE/i-hess/morse-code"
+TOPIC_PICO_RESP = "TAFE/i-hess/morse-code-respond"
+TOPIC_ADA_BUTTON = "Izzy0234/feeds/morse-code.button"
 
-#Connected to HiveMQTT broker
-# The callback for when the client receives a CONNACK response from the server.
-def on_connect(client, userdata, flags, reason_code, properties):
+
+def decode_morse(raw_message):
+    value = str(raw_message)
+    value = re.sub(r"b'|b\"|\[|\]|'|\"|,", "", value)
+    value = value.replace(" ", "")
+
+    if not value:
+        return ""
+
+    letters = value.split("=") if "=" in value else [value]
+    decoder = {
+        "._": "A", "_...": "B", "_._.": "C", "_..": "D", ".": "E", ".._.": "F",
+        "__.": "G", "....": "H", "..": "I", ".___": "J", "_._": "K", "._..": "L",
+        "__": "M", "_.": "N", "___": "O", ".__.": "P", "__._": "Q", "._.": "R",
+        "...": "S", "_": "T", ".._": "U", "..._": "V", ".__": "W", "_.._": "X",
+        "_.__": "Y", "__..": "Z", ".____": "1", "..___": "2", "...__": "3",
+        "...._": "4", ".....": "5", "_....": "6", "__...": "7", "___..": "8",
+        "____.": "9", "_____": "0"
+    }
+
+    text = ""
+    for letter in letters:
+        text += decoder.get(letter, "*")
+    return text
+
+
+def on_connect_hivemq(client, userdata, flags, reason_code, properties):
     print(f"Connected to {MQTT_BROKER} with result code {reason_code}")
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    client.subscribe(TOPIC_PICO)
+    client.subscribe(TOPIC_HIVEMQ)
 
-def on_message(client, userdata, msg):
-    if msg.topic == TOPIC_PICO:
-        print(msg.topic+": "+str(msg.payload))
+
+def on_message_hivemq(client, userdata, msg):
+    if msg.topic != TOPIC_HIVEMQ:
         return
 
-#Connected to io.adafruit.com broker
+    decoded = decode_morse(msg.payload)
+    print(f"HiveMQ {msg.topic}: {msg.payload} -> {decoded}")
+
+    if "*" not in decoded and decoded.strip():
+        mqttc.publish(TOPIC_PICO_RESP, "ledGreen2.on()")
+        mqttc_ada.publish(TOPIC_ADA_BUTTON, "ON")
+    else:
+        mqttc.publish(TOPIC_PICO_RESP, "ledRed2.on()")
+        mqttc_ada.publish(TOPIC_ADA_BUTTON, "OFF")
+
+
 def on_connect_ada(client, userdata, flags, reason_code, properties):
     print(f"Connected to {MQTT_ADA_BROKER} with result code {reason_code}")
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
     client.subscribe(TOPIC_ADA_BUTTON)
 
+
 def on_message_ada(client, userdata, msg):
-    mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
-    if msg.topic == TOPIC_ADA_BUTTON:
-        print(msg.topic+": "+str(msg.payload))
+    if msg.topic != TOPIC_ADA_BUTTON:
         return
+
+    payload = str(msg.payload.decode("utf-8", "ignore")).strip().upper()
+    print(f"Adafruit feed {msg.topic}: {payload}")
+
+    if payload in ("ON", "1", "TRUE"):
+        mqttc.publish(TOPIC_PICO_RESP, "ledGreen2.on()")
+    elif payload in ("OFF", "0", "FALSE"):
+        mqttc.publish(TOPIC_PICO_RESP, "ledGreen2.off()")
+    else:
+        mqttc.publish(TOPIC_PICO_RESP, "ledRed2.on()")
 
 
 
@@ -44,9 +87,10 @@ mqttc.connect(MQTT_BROKER)
 
 mqttc_ada = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqttc_ada.on_connect = on_connect_ada
+mqttc_ada.username_pw_set(ADAFRUIT_AIO_USERNAME, ADAFRUIT_AIO_KEY)
 mqttc_ada.on_message = on_message_ada
-mqttc_ada.connect(MQTT_BROKER)
-mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
+mqttc_ada.connect(MQTT_ADA_BROKER, 1883, 60)  # Connect to Adafruit IO broker
+# mqttc_ada.publish(TOPIC_ADA_BUTTON, "ON")  # Publish a message to the Adafruit button topic
 
 
 
@@ -55,7 +99,7 @@ mqttc_ada.loop_start()
 
 while True:
     time.sleep(1)  # Keep the main thread alive to allow MQTT loop to run
-    mqttc_ada.publish("Izzy0234/groups/morse-code", 'morse-code.button: ON')  # Publish a message to the Adafruit button topic
+    mqttc_ada.publish(TOPIC_ADA_BUTTON, "ON")  # Publish a message to the Adafruit button topic
     # mqttc_ada.publish("Izzy0234/groups/led-status", '{"feeds":{"led-status.led1":"ON","led-status.led2":"OFF"}}')  # Publish a message to the Adafruit button topic
 
 mqttc.loop_stop()  # Stop the MQTT loop when done
